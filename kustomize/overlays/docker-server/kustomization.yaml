@@ -1,0 +1,51 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../base/eck
+- ../../base/filebeat
+- namespace.yaml
+- elasticsearch.yaml
+- kibana.yaml
+- kibana-ingressroute.yaml
+- logstash.yaml
+generatorOptions:
+ disableNameSuffixHash: true
+ labels:
+   app.kubernetes.io/part-of: elk
+secretGenerator:
+- name: filebeat-es-ca
+  namespace: kube-system
+  files:
+  - ca.crt
+  - tls.crt
+- name: elasticsearch-credentials
+  namespace: kube-system
+  envs:
+  - elasticsearch-credentials.env
+patches:
+- path: filebeat-configmap-patch.yaml
+- path: filebeat-daemonset-patch.yaml
+- target:
+    group: apps
+    version: v1
+    kind: DaemonSet
+    name: filebeat
+    namespace: kube-system
+  patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/env/2
+      value:
+        name: ELASTICSEARCH_USERNAME
+        valueFrom:
+          secretKeyRef:
+            name: elasticsearch-credentials
+            key: username
+    - op: replace
+      path: /spec/template/spec/containers/0/env/3
+      value:
+        name: ELASTICSEARCH_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: elasticsearch-credentials
+            key: password

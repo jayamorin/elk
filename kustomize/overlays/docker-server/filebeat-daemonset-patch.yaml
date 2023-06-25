@@ -1,0 +1,37 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: filebeat
+  namespace: kube-system
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: filebeat
+        app.kubernetes.io/part-of: elk
+    spec:
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      containers:
+      - name: filebeat
+        env:
+        - name: ELASTICSEARCH_HOST
+          value: elasticsearch-es-http.elk.svc
+        - name: ELASTICSEARCH_PORT
+          value: "9200"
+        volumeMounts:
+        - mountPath: /usr/share/filebeat/config/elasticsearch-certs
+          name: elasticsearch-certs
+          readOnly: true
+      volumes:
+      - name: elasticsearch-certs
+        secret:
+          defaultMode: 420
+          optional: false
+          secretName: filebeat-es-ca

@@ -1,0 +1,51 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: kibana.artsbychip.com
+  namespace: elk
+spec:
+  secretName: kibana.artsbychip.com
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  dnsNames:
+    - kibana.artsbychip.com
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: kibana-kb-http-http
+  namespace: elk
+spec:
+  entryPoints:
+  - web
+  routes:
+  - kind: Rule
+    match: Host(`kibana.artsbychip.com`)
+    services:
+    - kind: Service
+      name: kibana-kb-http
+      port: 5601
+    middlewares:
+    - name: traefik-http-to-https@kubernetescrd
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: kibana-kb-http-https
+  namespace: elk
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - kind: Rule
+    match: Host(`kibana.artsbychip.com`) && PathPrefix(`/kibana`)
+    services:
+    - kind: Service
+      name: kibana-kb-http
+      port: 5601
+    #middlewares:
+    #- name: elk-kibana-pathprefix@kubernetescrd
+  tls:
+    secretName: kibana.artsbychip.com

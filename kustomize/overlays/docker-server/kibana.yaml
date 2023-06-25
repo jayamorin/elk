@@ -1,0 +1,46 @@
+---
+apiVersion: kibana.k8s.elastic.co/v1
+kind: Kibana
+metadata:
+  name: kibana
+  namespace: elk
+spec:
+  version: 8.8.1
+  count: 1
+  elasticsearchRef:
+    name: "elasticsearch"
+  config:
+    csp.strict: false
+  podTemplate:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kibana
+        app.kubernetes.io/part-of: elk
+    spec:
+      containers:
+      - name: kibana
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 1
+        env:
+        - name: SERVER_BASEPATH
+          value: "/kibana"
+        - name: SERVER_REWRITEBASEPATH
+          value: "true"
+        - name: SERVER_PUBLICBASEURL
+          value: "https://kibana.artsbychip.com/kibana"
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /kibana/login
+            port: 5601
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+  http:
+    tls:
+      selfSignedCertificate:
+        disabled: true
